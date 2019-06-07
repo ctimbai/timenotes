@@ -1,3 +1,5 @@
+[TOC]
+
 ## 01 开篇介绍
 
 开篇词就是总结了接下来要学习的东西。总的来说，这门课有以下亮点：
@@ -1475,3 +1477,132 @@ struct ext4_inode {
   - 可跨系统链接
 - 硬链接: 即为一个文件创建了一个别名, 这个别名会指向真实文件的 inode 结构体
   - 因为直接指向源文件结构体, 因此他无法跨文件系统进行链接
+
+
+
+## 29 虚拟文件系统
+
+虚拟文件系统是为 Linux 访问底层系统提供一个统一的接口，Linux 可以支持多达数十种不同的文件系统。
+
+Linux 一个文件操作的系统调用总的需要经历以下的几个层次：
+
+![img](https://static001.geekbang.org/resource/image/3c/73/3c506edf93b15341da3db658e9970773.jpg)
+
+挂载文件系统（mount）：
+
+1. 挂载之前先注册：`register_filesystem`
+2. mount 调用链：`do_mount->do_new_mount->vfs_kern_mount`
+3. `mount_fs` 挂载文件系统，调用 `ext4_fs_type` 的 `ext4_mount` 函数挂载 `ext4` 文件系统
+
+打开文件（open）：
+
+1. open->do_sys_open -> `get_unused_fd_flags` 得到一个未使用的文件描述符
+2. `path_init` 对文件路径进行查找，并逐层处理
+3. `do_last` 实现目录项高速缓存，Linux为了提高目录项对象的处理效率，设计和实现了目录项高速缓存 dcache。
+4. `vfs_open` 真正打开文件
+
+
+
+对于每一个打开的文件，都有一个 dentry 对应，叫做 directory entry，不仅仅表示文件夹，也表示文件，指向文件对应的 inode。dentry 是放在一个 dentry cache 里，文件关闭了，它依然存在。inode 结构表示硬盘上的 inode，包括块设备号等。
+
+
+
+## 30 文件缓存
+
+脏页：写入到缓存，但是还没有写入到硬盘的页面。
+
+缓存页：缓存以页为单位存在内存里，并以 `radix tree` 这种数据结构来存放。
+
+
+
+read 或 write 系统调用：
+
+1. 首先进入 VFS：`read->vfs_read->__vfs_read`
+2. 每个文件有一个结构 `struct file` ，其中 `file_operations` 定义了文件系统层的操作，对于 ext4 文件系统来说，调用 `ext4_file_read_iter`
+3. 这一步有两种方式，一种是直接读写硬盘，叫 直接 I/O，一种是通过缓存间接读写，叫 缓存 I/O
+4. 如果是缓存 I/O ，会触发数据的预读和回写
+
+具体过程用下面这张图来总结：
+
+![img](https://static001.geekbang.org/resource/image/0c/65/0c49a870b9e6441381fec8d9bf3dee65.png)
+
+
+
+
+
+## 31 输入输出设备
+
+用户-》设备控制器-》硬件设备
+
+比如中断控制器，DMA 控制器等待。
+
+
+
+输入输出设备：
+
+- 块设备：将信息存在固定大小的块中，每个块都有自己的地址，比如硬盘
+- 字符设备：发送或接收字节流，不能寻址，比如鼠标
+
+
+
+和各个设备控制器对接的对象又是设备驱动程序。
+
+![img](https://static001.geekbang.org/resource/image/7b/68/7bf96d3c8e3a82cdac9c7629b81fa368.png)
+
+
+
+设备驱动程序实现中断处理的入口：中断处理函数 handler
+
+
+
+读取设备文件的数据流并以十六进制查看：
+
+```sh
+cat /dev/urandom | od -x
+```
+
+
+
+Linux内核驱动程序可以看成是一个标准的内核模块，在linux中，安装驱动程序，就是加载一个内核模块。用 `lsmod` 查看没有加载的内核模块。用 `insmod` 安装内核模块。
+
+有了驱动，就可以用 `mknod` 在 /dev 文件夹下创建设备文件：
+
+```sh
+mknod filename type major minor
+# filename 为 /dev 下的设备名 
+# type 是 c 为字符设备，b 为 块设备
+# major 是主设备号
+# minor 是次设备号
+```
+
+
+
+之后就可以通过操作新创建的设备文件来操作相应的驱动程序了。
+
+
+
+也可以通过 `sysfs` 文件系统下 `/sys` 查看设备文件：
+
+在 /sys 路径下有下列的文件夹：
+
+- `/sys/devices` 是内核对系统中所有设备的分层次的表示； 
+- `/sys/dev` 目录下一个 char 文件夹，一个 block 文件夹，分别维护一个按字符设备和块设备的主次号码 (major:minor）连接到真是设备(/sys/devices) 的符号连接文件
+- `/sys/block` 是系统中当前所有的块设备
+- `/sys/module` 有系统中所有模块的信息
+
+
+
+有了 sysfs 之后，还需要一个守护进程`udev`，当一个设备新插入系统的时候，内核会检查到这个设备，并向 `udevd` 发送热插拔消息，`udev` 接着在 /dev/ 中创建对于文件。
+
+![img](https://static001.geekbang.org/resource/image/62/90/6234738aac8d5897449e1a541d557090.jpg)
+
+最后，用下面一幅图来总结整个输入输出的管理层次关系：
+
+![img](https://static001.geekbang.org/resource/image/80/7f/80e152fe768e3cb4c84be62ad8d6d07f.jpg)
+
+
+
+
+
+
+
