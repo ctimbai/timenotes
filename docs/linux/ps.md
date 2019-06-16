@@ -1,20 +1,16 @@
-## 32 字符设备(上)
+## 35 块设备(下)
 
-打开一个字符设备，需要经历以下的一些过程：
-
-1. 把写好的内核模块 （.ko 结尾），通过 insmod 加载进内核，`module_init`
-2. 通过 mknod 在 /dev 下创建一个设备文件，并和相应的设备号进行关联，最后就可以通过文件系统的接口，对这个设备文件进行操作。
-3. open 打开设备文件
+从文件系统到块设备的调用层次关系如下：
 
 
 
-![img](https://static001.geekbang.org/resource/image/2e/e6/2e29767e84b299324ea7fc524a3dcee6.jpeg)
+![img](https://static001.geekbang.org/resource/image/3c/0e/3c473d163b6e90985d7301f115ab660e.jpeg)
 
-打开设备文件之后，就可以对文件进行读写了。
+块设备IO 和字符设备IO一样，IO操作都分为两种：直接IO和缓存IO。
 
-通过 read write 调用到内核中的 `sys_read` 和 `sys_write` 进行操作。
+无论哪种IO，最终都会调用submit_bio 提交块设备的 IO 请求。
 
-除此之外，还可以调用 `ioctl` 进行一些特殊的 I/O 操作。
+每一种块设备，都有一个 gendisk 表示这个设备，它有一个请求队列，这个请求队列是一系列的request对象，每个request对象里面包含多个BIO对象，指向page cache，所谓写入块设备，就是将 page cache 里的数据写入硬盘。
 
-
+![img](https://static001.geekbang.org/resource/image/c9/3c/c9f6a08075ba4eae3314523fa258363c.png)
 

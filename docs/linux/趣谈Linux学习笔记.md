@@ -1602,6 +1602,50 @@ mknod filename type major minor
 
 
 
+## 32 字符设备(上)
+
+打开一个字符设备，需要经历以下的一些过程：
+
+1. 把写好的内核模块 （.ko 结尾），通过 insmod 加载进内核，`module_init`
+2. 通过 mknod 在 /dev 下创建一个设备文件，并和相应的设备号进行关联，最后就可以通过文件系统的接口，对这个设备文件进行操作。
+3. open 打开设备文件
+
+
+
+![img](https://static001.geekbang.org/resource/image/2e/e6/2e29767e84b299324ea7fc524a3dcee6.jpeg)
+
+打开设备文件之后，就可以对文件进行读写了。
+
+通过 read write 调用到内核中的 `sys_read` 和 `sys_write` 进行操作。
+
+除此之外，还可以调用 `ioctl` 进行一些特殊的 I/O 操作。
+
+
+
+## 33 字符设备(下)
+
+中断的大体处理流程：
+
+从外部设备发起，形成外部中断信号，中断信号到达中断控制器，中断控制器接着发送中断向量 interrupt vector 给 CPU。
+
+`do_IRQ` ：统一处理硬件中断的处理函数，通过中断向量  vector_irq 映射为 irq_desc，irq_desc 是一个用于描述用户注册的中断处理函数结构，为了能够根据中断向量得到 irq_desc 结构，会把这些结构放在一个基数树里面，irq_desc 里有一个成员 irqaction，指向设备驱动程序里面注册的中断处理函数。大体过程如下：
+
+![img](https://static001.geekbang.org/resource/image/26/8f/26bde4fa2279f66098856c5b2b6d308f.png)
+
+
+
+## 34 块设备(上)
+
+mknod 创建块设备文件，创建在 /dev 路径下，属于 devtmpfs 文件系统。
+
+insmod 加载块设备文件
+
+mount 块设备文件
+
+下面一幅图展示了这三个系统调用的底层实现细节：
+
+![img](https://static001.geekbang.org/resource/image/62/20/6290b73283063f99d6eb728c26339620.png)
+
 
 
 
