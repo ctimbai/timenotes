@@ -86,37 +86,36 @@
     <ul class="nav bs-sidenav">
         <li class="main active"><a href="#01-linux">01 如何学习 Linux 性能优化</a></li>
         <li class="main "><a href="#02">02 理解平均负载</a></li>
-            <li><a href="#_1">平均负载</a></li>
             <li><a href="#cpu">平均负责与 CPU 使用率</a></li>
-            <li><a href="#_2">实验</a></li>
+            <li><a href="#_1">实验</a></li>
         <li class="main "><a href="#03-cpu">03 CPU 上下文切换</a></li>
             <li><a href="#cpu_1">查看 CPU 上下文切换</a></li>
-            <li><a href="#_3">查看进程上下文切换次数</a></li>
-            <li><a href="#_4">模拟系统上下文切换工具</a></li>
-            <li><a href="#_5">查看引起频繁中断的中断类型</a></li>
+            <li><a href="#_2">查看进程上下文切换次数</a></li>
+            <li><a href="#_3">模拟系统上下文切换工具</a></li>
+            <li><a href="#_4">查看引起频繁中断的中断类型</a></li>
         <li class="main "><a href="#04-cpu">04 CPU 使用率</a></li>
             <li><a href="#cpu_2">查看 CPU 使用率</a></li>
         <li class="main "><a href="#05">05 不可中断进程和僵尸进程</a></li>
-        <li class="main "><a href="#_6">缓存.</a></li>
-            <li><a href="#_7">缓存命中情况</a></li>
-            <li><a href="#_8">网友总结的性能排查思路</a></li>
+        <li class="main "><a href="#_5">缓存.</a></li>
+            <li><a href="#_6">缓存命中情况</a></li>
+            <li><a href="#_7">网友总结的性能排查思路</a></li>
         <li class="main "><a href="#33-linux">33 Linux 网络基本模型</a></li>
-            <li><a href="#_9">网络模型</a></li>
+            <li><a href="#_8">网络模型</a></li>
             <li><a href="#linux">Linux 网络栈</a></li>
             <li><a href="#linux_1">Linux 网络收发流程</a></li>
         <li class="main "><a href="#34-linux">34 Linux 网络性能分析指标和工具</a></li>
-            <li><a href="#_10">性能指标</a></li>
-            <li><a href="#_11">网络配置</a></li>
-            <li><a href="#_12">套接字信息</a></li>
-            <li><a href="#_13">协议栈统计信息</a></li>
+            <li><a href="#_9">性能指标</a></li>
+            <li><a href="#_10">网络配置</a></li>
+            <li><a href="#_11">套接字信息</a></li>
+            <li><a href="#_12">协议栈统计信息</a></li>
             <li><a href="#pps">网络吞吐和 PPS</a></li>
-            <li><a href="#_14">连通性和延时</a></li>
+            <li><a href="#_13">连通性和延时</a></li>
         <li class="main "><a href="#35-c10k-c100kc10m">35 C10K 、C100K、C10M 问题</a></li>
             <li><a href="#c10k-1">C10K 单机支持 1万并发请求</a></li>
             <li><a href="#c100k-10">C100K 单机支持10万并发请求</a></li>
         <li class="main "><a href="#55">55 分析性能的一般套路</a></li>
-            <li><a href="#_15">系统资源瓶颈</a></li>
-            <li><a href="#_16">应用程序瓶颈</a></li>
+            <li><a href="#_14">系统资源瓶颈</a></li>
+            <li><a href="#_15">应用程序瓶颈</a></li>
     </ul>
 </div></div>
                 <div class="col-md-9" role="main">
@@ -131,7 +130,6 @@
 <p>最后善于总结、分类。</p>
 <p><img alt="" src="../images/alltools.png" /></p>
 <h2 id="02">02 理解平均负载</h2>
-<h3 id="_1">平均负载</h3>
 <p><strong>平均负载</strong>：指单位时间内，系统处于 <strong>可运行状态（R）</strong> 和 <strong>不可中断状态（D）</strong> 的平均进程数，也就是 <strong>平均活跃进程数</strong> 。</p>
 <ul>
 <li><strong>可运行状态：</strong> 正在使用 CPU 或者正在等待 CPU 的进程</li>
@@ -156,7 +154,7 @@
 <li>IO 密集型进程：等待 IO 也会导致平均负载升高，但 CPU 使用率并不一定会升高</li>
 <li>大量等待 CPU 的进程调度也会导致平均负载升高，CPU 使用率也会比较高</li>
 </ul>
-<h3 id="_2">实验</h3>
+<h3 id="_1">实验</h3>
 <p><strong>工具：</strong></p>
 <ul>
 <li>工具包：<code>stress</code> 和 <code>sysstat</code></li>
@@ -212,7 +210,7 @@ procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
 <li><code>r(running or runnable)</code> 就绪队列长度，也就是正在运行和等待 CPU 的进程数</li>
 <li><code>b(Blocked)</code> 处于不可中断睡眠状态的进程数 </li>
 </ul>
-<h3 id="_3">查看进程上下文切换次数</h3>
+<h3 id="_2">查看进程上下文切换次数</h3>
 <pre><code># 每隔 5 秒输出 1 组数据 
 $ pidstat -w 5
 Linux 3.10.0-862.14.4.el7.x86_64 (by)   12/18/2018  _x86_64_    (1 CPU)
@@ -237,7 +235,7 @@ Linux 3.10.0-862.14.4.el7.x86_64 (by)   12/21/2018  _x86_64_    (1 CPU)
 08:57:18 AM     0         -         3      2.02      0.00  |__ksoftirqd/0
 </code></pre>
 
-<h3 id="_4">模拟系统上下文切换工具</h3>
+<h3 id="_3">模拟系统上下文切换工具</h3>
 <p><strong>sysbench</strong> : 一个多线程基准测试工具，可以用来模拟系统多线程调度切换</p>
 <p>ubuntu 安装</p>
 <pre><code>apt install sysbench sysstat
@@ -248,7 +246,7 @@ Linux 3.10.0-862.14.4.el7.x86_64 (by)   12/21/2018  _x86_64_    (1 CPU)
 sysbench --threads=10 --max-time=300 threads run 
 </code></pre>
 
-<h3 id="_5">查看引起频繁中断的中断类型</h3>
+<h3 id="_4">查看引起频繁中断的中断类型</h3>
 <p>查看 <code>/proc/interrupts</code></p>
 <p>使用 <code>watch -d cat /proc/interrupts</code> 查看中断的变化情况，重点关注 <code>RES</code> 行，重调度中断，表示唤醒空闲状态的 CPU 来调度新的任务运行，这是 SMP 系统中，调度器用来分散任务到不同 CPU 的机制。</p>
 <p><strong>结论：</strong></p>
@@ -290,14 +288,14 @@ sysbench --threads=10 --max-time=300 threads run
 </code></pre>
 
 <p>strace 跟踪系统进程系统调用的工具。先通过 <code>pidstat -d</code> 找出影响进程 id，再用 strace 来跟踪。</p>
-<h2 id="_6">缓存.</h2>
-<h3 id="_7">缓存命中情况</h3>
+<h2 id="_5">缓存.</h2>
+<h3 id="_6">缓存命中情况</h3>
 <p>工具：</p>
 <ul>
 <li>cachestat 提供了整个操作系统缓存的读写命中情况</li>
 <li>cachetop 提供每个进程的缓存命中情况</li>
 </ul>
-<h3 id="_8">网友总结的性能排查思路</h3>
+<h3 id="_7">网友总结的性能排查思路</h3>
 <ol>
 <li>有监控的时候，看监控大盘</li>
 <li>没有的情况下，首先看系统的平均负载（<code>top</code> 或 <code>htop</code>），标示这系统的一个整体情况</li>
@@ -309,7 +307,7 @@ sysbench --threads=10 --max-time=300 threads run
 <li>如果系统层各个指标查下来都没有发现异常，那么久要考虑外部系统，比如数据库、缓存、存储等。</li>
 </ol>
 <h2 id="33-linux">33 Linux 网络基本模型</h2>
-<h3 id="_9">网络模型</h3>
+<h3 id="_8">网络模型</h3>
 <ul>
 <li>OSI 开放互联七层模型</li>
 <li>TCP/IP 四层模型</li>
@@ -350,7 +348,7 @@ sysbench --threads=10 --max-time=300 threads run
 <li>驱动程序再通过 DMA ，从发包队列中读出网络包，继而通过物理网卡发送出去。</li>
 </ol>
 <h2 id="34-linux">34 Linux 网络性能分析指标和工具</h2>
-<h3 id="_10">性能指标</h3>
+<h3 id="_9">性能指标</h3>
 <p>说到网络性能优化，有哪些可衡量的指标呢？</p>
 <p>常用的指标无外乎四个：带宽、吞吐量、延时、PPS（Packet Per Second）。</p>
 <ul>
@@ -366,13 +364,13 @@ sysbench --threads=10 --max-time=300 threads run
 <li>丢包数（丢包百分比）</li>
 <li>重传率（重新传输的网络包比例）</li>
 </ul>
-<h3 id="_11">网络配置</h3>
+<h3 id="_10">网络配置</h3>
 <p>工具：</p>
 <ul>
 <li>ip</li>
 <li>ifconfig</li>
 </ul>
-<h3 id="_12">套接字信息</h3>
+<h3 id="_11">套接字信息</h3>
 <ul>
 <li>netstat</li>
 <li>ss</li>
@@ -409,7 +407,7 @@ LISTEN   0         128                 0.0.0.0:22               0.0.0.0:*       
 <li>Send-Q 表示最大的 syn backlog 值</li>
 </ul>
 <p>syn backlog 是 TCP 协议栈中的半连接队列长度，相应的也有一个全连接队列（accept queue），它们都是维护 TCP 状态的重要机制。</p>
-<h3 id="_13">协议栈统计信息</h3>
+<h3 id="_12">协议栈统计信息</h3>
 <p>同样适用 netstat，ss：</p>
 <pre><code class="sh">$ netstat -s
 ...
@@ -466,7 +464,7 @@ Linux 4.15.0-1035-azure (ubuntu)    01/06/19    _x86_64_    (2 CPU)
     Speed: 1000Mb/s
 </code></pre>
 
-<h3 id="_14">连通性和延时</h3>
+<h3 id="_13">连通性和延时</h3>
 <p>通常使用 ping：</p>
 <pre><code class="sh"># -c3 表示发送三次 ICMP 包后停止
 $ ping -c3 114.114.114.114
@@ -484,8 +482,8 @@ rtt min/avg/max/mdev = 244.023/244.070/244.105/0.034 ms
 <h3 id="c10k-1">C10K 单机支持 1万并发请求</h3>
 <h3 id="c100k-10">C100K 单机支持10万并发请求</h3>
 <h2 id="55">55 分析性能的一般套路</h2>
-<h3 id="_15">系统资源瓶颈</h3>
-<h3 id="_16">应用程序瓶颈</h3></div>
+<h3 id="_14">系统资源瓶颈</h3>
+<h3 id="_15">应用程序瓶颈</h3></div>
         </div>
 
         <footer class="col-md-12">

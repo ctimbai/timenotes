@@ -137,71 +137,6 @@
 </div></div>
                 <div class="col-md-9" role="main">
 
-<div class="toc">
-<ul>
-<li><a href="#1">第 1 课 网络协议一览</a></li>
-<li><a href="#2">第 2 课 网络分层</a></li>
-<li><a href="#3-ifconfig-ip">第 3 课 ifconfig 与 IP 地址分类</a></li>
-<li><a href="#4-ip-dhcp">第 4 课 IP 地址与 DHCP</a></li>
-<li><a href="#5-mac-arp">第 5 课 MAC 地址与 ARP</a></li>
-<li><a href="#6-vlan">第 6 课 交换机和 VLAN</a></li>
-<li><a href="#7-icmpping-traceroute">第 7 课 ICMP、ping 与 traceroute</a></li>
-<li><a href="#8-nat">第 8 课 NAT 网关</a></li>
-<li><a href="#9-ripospfbgp">第 9 课 路由协议 RIP、OSPF、BGP</a></li>
-<li><a href="#10-udp">第 10 课 UDP 协议</a></li>
-<li><a href="#11-tcp">第 11 课 TCP 协议（上）</a></li>
-<li><a href="#12-tcp">第 12 课 TCP 协议（下）</a></li>
-<li><a href="#13-socket">第 13 课 套接字 Socket</a></li>
-<li><a href="#14-http">第 14 课 HTTP 协议</a></li>
-<li><a href="#15-https">第 15 课 HTTPS 协议</a><ul>
-<li><a href="#https">HTTPS 的工作模式</a></li>
-</ul>
-</li>
-<li><a href="#16">第 16 课 流媒体协议</a></li>
-<li><a href="#17-p2p">第 17 课 P2P 协议</a></li>
-<li><a href="#18-dns">第 18 课 DNS 协议</a></li>
-<li><a href="#19-httpdns">第 19 课 HTTPDNS</a></li>
-<li><a href="#20-cdn">第 20 课 CDN</a></li>
-<li><a href="#21">第 21 课 数据中心</a></li>
-<li><a href="#22-vpn">第 22 课 VPN</a><ul>
-<li><a href="#ipsec-vpn">IPsec VPN</a></li>
-</ul>
-</li>
-<li><a href="#23">第 23 课 移动网络</a><ul>
-<li><a href="#2g">2G</a></li>
-<li><a href="#25g">2.5G</a></li>
-<li><a href="#3g">3G</a></li>
-<li><a href="#4g">4G</a></li>
-</ul>
-</li>
-<li><a href="#24">第 24 课 云中网络</a><ul>
-<li><a href="#bridge">共享与互通：通过 bridge</a></li>
-<li><a href="#_1">隔离</a></li>
-</ul>
-</li>
-<li><a href="#25-sdn">第 25 课 软件定义网络 SDN</a><ul>
-<li><a href="#openflow-openvswitch">OpenFlow 和 OpenvSwitch</a></li>
-</ul>
-</li>
-<li><a href="#26-iptables">第 26 课 云中的网络安全（iptables）</a></li>
-<li><a href="#27-qos">第 27 课 云中网络的 QoS</a></li>
-<li><a href="#28-grevxlan">第 28 课 云中网络的隔离 GRE、VXLAN</a></li>
-<li><a href="#29">第 29 课 容器网络</a></li>
-<li><a href="#30-flannel">第 30 课 容器网络之 Flannel</a></li>
-<li><a href="#31-calico">第 31 课 容器网络之 Calico</a></li>
-<li><a href="#32-rpc">第 32 课 RPC 协议概述</a></li>
-<li><a href="#33-xml-soap">第 33 课 基于 XML 的 SOAP 协议</a></li>
-<li><a href="#34-json-restful">第 34 课 基于 JSON 的 RESTful 接口协议</a></li>
-<li><a href="#35-rpc">第 35 课 二进制 RPC 协议</a></li>
-<li><a href="#36-rpc">第 36 课 跨语言类 RPC 协议</a></li>
-<li><a href="#37-39">第 37-39 课 用双十一的例子串讲网络协议</a></li>
-<li><a href="#40">第 40 讲 搭建一个网络实验环境</a><ul>
-<li><a href="#_2">环境搭建</a></li>
-<li><a href="#ovs">OVS 实验</a></li>
-</ul>
-</li>
-</ul>
-</div>
 <h2 id="1">第 1 课 网络协议一览</h2>
 <p>OSI 七层协议：</p>
 <p>从下到上：物理层、数据链路层、网络层、传输层、会话层、表示层、应用层。</p>
@@ -505,7 +440,7 @@ ip rule add from 192.168.2.0/24 table 20
 <h2 id="15-https">第 15 课 HTTPS 协议</h2>
 <h3 id="https">HTTPS 的工作模式</h3>
 <p>HTTPS 基于 SSL 协议，握手过程也是基于 SSL 的三次握手协议，如下：</p>
-<p><img alt="" src="../images/https.jpg" /></p>
+<p><img alt="" src="images/https.jpg" /></p>
 <h2 id="16">第 16 课 流媒体协议</h2>
 <p>讲到了一个 CDN 内容分发网络：包括中心和边缘两层。</p>
 <p>边缘层服务器部署在全国各地及横跨各大运营商里，和用户距离很近。中心层是流媒体服务集群，负责内容的转发。智能负载均衡系统，根据用户的地理位置信息，就近选择边缘服务器，为用户提供推 /拉流服务。中心层也负责转码服务，例如，把 RTMP 协议的码流转换为 HLS 码流。</p>
