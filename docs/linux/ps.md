@@ -236,3 +236,86 @@ struct sembuf
 
 信号可以在任何时候发送给进程，进程需要为这个信号设置信号处理函数。相当于一个应急手册。
 
+
+
+## 37 信号
+
+Linux定义了非常多的信号，`kill -l` 可以查看所有的信号。
+
+`man 7 signal` 查看每个信号的意思：
+
+```sh
+Signal     Value     Action   Comment
+──────────────────────────────────────────────────────────────────────
+SIGHUP        1       Term    Hangup detected on controlling terminal
+                              or death of controlling process
+SIGINT        2       Term    Interrupt from keyboard
+SIGQUIT       3       Core    Quit from keyboard
+SIGILL        4       Core    Illegal Instruction
+
+
+SIGABRT       6       Core    Abort signal from abort(3)
+SIGFPE        8       Core    Floating point exception
+SIGKILL       9       Term    Kill signal
+SIGSEGV      11       Core    Invalid memory reference
+SIGPIPE      13       Term    Broken pipe: write to pipe with no
+                              readers
+SIGALRM      14       Term    Timer signal from alarm(2)
+SIGTERM      15       Term    Termination signal
+SIGUSR1   30,10,16    Term    User-defined signal 1
+SIGUSR2   31,12,17    Term    User-defined signal 2
+……
+```
+
+
+
+进程对信号的处理方式：
+
+- 执行默认操作：比如 Core Dump，程序种植户，将进程状态保存到文件中，方式程序员事后分析问题
+- 捕捉信号：执行信号处理函数
+- 忽略信号
+
+
+
+信号处理常见流程：
+
+1. 注册信号处理函数
+2. 发送信号
+
+
+
+注册信号处理函数：
+
+```sh
+typedef void (*sighandler_t)(int);
+int sigaction(int signum, const struct sigaction *act,
+                     struct sigaction *oldact);
+```
+
+
+
+信号处理函数执行的动作保存在结构体 `struct sigaction` 中：
+
+```sh
+struct sigaction {
+	__sighandler_t sa_handler;
+	unsigned long sa_flags;
+	__sigrestore_t sa_restorer;
+	sigset_t sa_mask;		/* mask last for extensibility */
+};
+```
+
+
+
+sigaction 的调用过程：
+
+```sh
+sigaction-> __sigaction -> __libc_sigaction -> rt_sigaction(内核) -> do_sigaction
+```
+
+
+
+大体的流程如下所示：
+
+![img](https://static001.geekbang.org/resource/image/7c/28/7cb86c73b9e73893e6b0e0433d476928.png)
+
