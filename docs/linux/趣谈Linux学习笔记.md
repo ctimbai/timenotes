@@ -2220,3 +2220,238 @@ sigaction-> __sigaction -> __libc_sigaction -> rt_sigaction(内核) -> do_sigact
 
 
 
+## 38 信号(下)
+
+中断与信号的区别：
+
+- 中断在内核驱动里注册中断处理函数
+- 信号在用户态进程中注册信号处理函数
+
+发送信号的系统调用：
+
+- kill 或 sigqueue 发送信号给某个进程
+- tkill 或 tgkill 发送信号给某个线程
+
+最终都会调用到 `do_send_sig_info` 函数。
+
+
+
+信号的发送和处理：
+
+![img](https://static001.geekbang.org/resource/image/3d/fb/3dcb3366b11a3594b00805896b7731fb.png)
+
+
+
+## 39 管道
+
+管道分为匿名管道和命名管道
+
+两个进程之间通过匿名管道进行通信：
+
+```c
+int pipe(int fd[2])
+```
+
+
+
+![img](https://static001.geekbang.org/resource/image/71/b6/71eb7b4d026d04e4093daad7e24feab6.png)
+
+通过 mkfifo 创建命名管道
+
+无论是匿名管道，还是命名管道，在内核都是一个文件。
+
+写入一个 pipe 就是从 struct file 结构中找到缓存写入，读取一个 pipe 就是从 struct file 结构中找到缓存读出。
+
+
+
+## 40 IPC 共享内存和信号量
+
+共享内存和信号量都通过 ftok 得到 key，通过 xxxget 创建对象并生成 id；
+
+生产者和消费者通过 shmat 将共享内存映射到各自的内存空间，在不同进程里面映射的位置不同。同时，共享内存需要通过信号量来进行保护。
+
+如下图所示：
+
+
+
+![img](https://static001.geekbang.org/resource/image/46/0b/469552bffe601d594c432d4fad97490b.png)
+
+
+
+## 41 IPC(中) 共享内存的创建和映射
+
+共享内存的创建和映射过程：
+
+1. 调用 shmget 创建共享内存，这会调用 shm_ops 结构的 newseg 方法，创建共享内存对象 shmid_kernel
+2. 在 shmem 文件系统中创建一个文件 file1，共享内存对象 shmid_kernel 会指向这个文件
+3. 调用 shmat，将共享内存映射到虚拟地址空间
+4. 创建用于内存映射到文件的 file2 和 shm_file_data
+5. 关联内存区域 vm_area_struct 和 file2，并调用 file2 的 mmap 函数
+6. file2 的 mmap 函数 shm_mmap 会调用 file1 的 mmap 函数 shmem_mmap，完成内存映射，大体过程如下：
+
+![img](https://static001.geekbang.org/resource/image/20/51/20e8f4e69d47b7469f374bc9fbcf7251.png)
+
+
+
+## 42 IPC(下) 信号量的内核机制
+
+信号量机制：
+
+1. 调用 semget 创建信号量集合，进而调用 sem_ops 的 newary 方法，创建一个信号量集合 sem_array
+2. 调用 semctl 初始化信号量
+3. 再调用 semop 操作信号量，创建信号量操作结果 sem_queue，放入队列
+4. 创建 undo 结构，放入链表
+
+如下图所示：
+
+![img](https://static001.geekbang.org/resource/image/60/7c/6028c83b0aa00e65916988911aa01b7c.png)
+
+
+
+## 43 预习：Socket通信之网络协议基本原理
+
+两种协议模型：OSI 七层模型和 TCP/IP 模型
+
+![img](https://static001.geekbang.org/resource/image/92/0e/92f8e85f7b9a9f764c71081b56286e0e.png)
+
+
+
+数据包的发送过程，这里有一张神图：
+
+![img](https://static001.geekbang.org/resource/image/98/28/98a4496fff94eb02d1b1b8ae88f8dc28.jpeg)
+
+
+
+## 43 Socket 通信
+
+
+
+socket 通信的网络子系统：
+
+![img](https://static001.geekbang.org/resource/image/d3/5c/d34e667d1c3340deb8c82a2d44f2a65c.png)
+
+四层及以下都属于内核层面的东西。
+
+
+
+## 44 Socket 的内核数据结构
+
+TCP 三次握手的底层实现流程：
+
+![img](https://static001.geekbang.org/resource/image/ab/df/ab92c2afb4aafb53143c471293ccb2df.png)
+
+
+
+整个 socket 调用过程如下：
+
+![img](https://static001.geekbang.org/resource/image/c0/d8/c028381cf45d65d3f148e57408d26bd8.png)
+
+
+
+socket 系统调用有三个级别的参数 family、type、protocal，通过这三级参数，分别在 net_proto_family 表中找到 type 链表，在 type 链表中找到 protocal 对应的操作，这个操作分为两层，对于 TCP 协议来讲，第一层是 inet_stream_ops 层，第二层是 tcp_prot 层。
+
+
+
+## 45 发送网络数据包(一)
+
+数据包的发送需要经历这样的几个层次：
+
+- **VFS层：** write 找到 struct file，根据里面的 file_operations 定义，调用 sock_write_iter 函数，接着调用 sock_sendmsg 函数
+- **Socket 层：** 从 struct file 里面的 private_data 得到 struct socket，根据里面的 ops 定义，调用 inet_sendmsg 函数
+- **Sock 层：** 从 struct socket 里面的 sk_buff 得到 struct sock ，根据里面 sk_prot 定义，调用 tcp_sendmsg 函数
+- **TCP 层：** tcp_sendmsg 函数会调用 tcp_write_xmit 函数，tcp_write_xmit 函数会调用 tcp_transmit_skb，这里实现了 TCP 层面向连接的逻辑。
+- **IP 层：** 扩展 struct sock，得到 struct inet_connection_sock，根据里面 icsk_af_ops 的定义，调用 ip_queue_xmit 函数
+
+如下图所示：
+
+![img](https://static001.geekbang.org/resource/image/dc/44/dc66535fa7e1a10fd6d728865f6c9344.png)
+
+
+
+其中，sk_buff 的结构如下所示：
+
+![img](https://static001.geekbang.org/resource/image/9a/b8/9ad34c3c748978f915027d5085a858b8.png)
+
+
+
+## 46 发送网络包(下)
+
+接着上面：
+
+- **IP 层：** 扩展 struct sock，得到 struct inet_connection_sock，根据里面 icsk_af_ops 的定义，调用 ip_queue_xmit 函数
+- **IP 层：** ip_route_output_ports 函数里面会调用 fib_lookup 查找路由表，FIB 全称是 Forwarding Information Base，转发信息表，也就是路由表
+- 在 IP 层里面做的另一件事是填写 IP 层的头，以及 通过 iptables 规则
+- **Mac 层：** IP 层调用 ip_finish_output 进行 MAC 层，MAC 层需要 ARP 得到 MAC 地址，调用 `__neigh_lookup_noref` 查找属于同一个网段的邻居，它会调用 neigh_probe 发送 ARP，有了 MAC 地址，就可以调用 dev_queue_xmit 发送二层网络包了，接着调用 `__dev_xmit_skb` 将请求放入队列
+- **设备层：** 网络包的发送会触发一个软中断 NET_TX_SOFTIRQ 来处理队列中的数据，这个软中断的处理函数是 net_tx_action，在该函数中，会将网络包从队列上拿下来，调用网络设备的传输函数 `ixgb_xmit_frame` 将网络包发到设备的队列上去
+
+如下图所示：
+
+![img](https://static001.geekbang.org/resource/image/79/6f/79cc42f3163d159a66e163c006d9f36f.png)
+
+其中，iptables 的调用关系图如下：
+
+![img](https://static001.geekbang.org/resource/image/75/4d/75c8257049eed99499e802fcc2eacf4d.png)
+
+Iptables 有表和链的概念，最终是两个表：
+
+filter 表处理过滤功能，主要包含三个链：
+
+- INPUT 链：过滤所有目标地址是本机的数据包
+- FORWARD 链：过滤所有路过本机的数据包
+- OUTPUT 链：过滤所有由本机产生的数据包
+
+nat 表主要处理网络地址转换，进行 SNAT 和 DNAT，含三个链：
+
+- PREROUTING 链：可以在数据包达到时改变目标地址
+- OUTPUT 链：可以改变本地产生的数据包的目标地址
+- POSTROUTING链：在数据包离开时改变数据包的源地址
+
+
+
+![img](https://static001.geekbang.org/resource/image/76/da/765e5431fe4b17f62b1b5712cc82abda.png)
+
+
+
+## 47 接收网络包(上)
+
+网络数据包的接收也分以下几个层次：
+
+- **硬件层：** 网卡收到包之后，通过 DMA 技术，拷贝到 Ring Buffer 中。接着通过中断通知 CPU 有新的包到来
+- **设备驱动层：** 网卡驱动程序注册中断处理函数 `ixgb_intr`，中断处理函数分前半段和后半段，前半段处理完需要暂时屏蔽中断的核心流程之后，通过软中断 `NET_RX_SOFTIRQ` 触发接下来的处理过程，软中断处理函数是 `net_rx_action`，调用 `napi_poll` 从 Ring Buffer 中读取数据到内核 struct sk_buff。
+- **数据链路层：** 调用 `netif_receive_skb` 进入内核网络协议栈，进行一些关于 VLAN 的二层处理
+- **网络层：** 调用 `ip_rcv` 进入 IP 层，在 IP 层，会处理 iptables 规则，调用 `ip_local_deliver` 交给 TCP 层
+- **传输层：** 调用 `tcp_v4_rcv` 层
+
+![img](https://static001.geekbang.org/resource/image/a5/37/a51af8ada1135101e252271626669337.png)
+
+
+
+## 48 接收网络包(下)
+
+用户态从内核协议栈读取数据包的过程也可以分为以下几个层次：
+
+- **VFS 层：** read 系统调用找到 struct file，根据里面的 file_operations 的定义，调用 sock_read_iter 函数，接着调用 sock_recvmsg 函数
+- **Socket 层：** 从 struct file 里面的 private_data 得到 struct socket，根据里面 ops 的定义，调用 inet_recvmsg 函数
+- **Sock 层：** 从 struct socket 里面的 sk 得到 struct sock，根据里面 sk_prot 定义，调用 tcp_recvmsg 函数
+- **TCP 层：** tcp_recvmsg 依次读取 receive_queue 队列，prequeue 队列和 backlog 队列
+
+![img](https://static001.geekbang.org/resource/image/20/52/20df32a842495d0f629ca5da53e47152.png)
+
+
+
+## 49 虚拟机
+
+qemu-kvm 的半虚拟化模型如下所示：
+
+![img](https://static001.geekbang.org/resource/image/f7/22/f748fd6b6b84fa90a1044a92443c3522.png)
+
+
+
+虚拟机之间的通信模型：
+
+![img](https://static001.geekbang.org/resource/image/da/a7/da83bb01b7ed63ac0062b5cc835099a7.png)
+
+
+
+
+
