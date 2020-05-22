@@ -24,6 +24,8 @@
 
 
 
+# CPU
+
 ## 02 理解平均负载
 
 
@@ -266,6 +268,24 @@ strace 跟踪系统进程系统调用的工具。先通过 `pidstat -d` 找出�
 7. 涉及到具体应用，根据应用的参数来查看，比如连接数是否超过设定值等
 8. 如果系统层各个指标查下来都没有发现异常，那么久要考虑外部系统，比如数据库、缓存、存储等。
 
+# 网络
+
+从下往上：
+
+|    测量指标     |          测量工具           |  测量单位  |
+| :-------------: | :-------------------------: | :--------: |
+|  应用负载性能   |             wrk             |    #/s     |
+|  HTTP性能 QPS   |         ab/webbench         |    #/s     |
+|  TCP/UDP吞吐量  |       iperf3/netperf        |    Mb/s    |
+|    网络层PPS    |        pktgen/hping3        |    包/s    |
+| 套接字状态/队列 |        netstat -lntp        |     无     |
+| 协议栈统计信息  |      netstat -s/ss -s       |     无     |
+|  网卡统计信息   | ifconfig/ip -s addr show xx |     无     |
+|   网络吞吐量    |        sar -n DEV 1         |    KB/s    |
+|       PPS       |        sar -n DEV 1         |    包/s    |
+|    网络带宽     |  ethtool eth0\|grep Speed   | Gb/s, Mb/s |
+|    链路时延     |            ping             |     s      |
+
 
 
 ## 33 Linux 网络基本模型
@@ -361,6 +381,10 @@ Linux 通用 IP 网络栈：
 
 
 ### 测量工具
+
+记住：从下到上
+
+链路-》网卡-》协议栈-》应用程序
 
 **网络接口** 统计信息使用工具：
 
@@ -537,6 +561,142 @@ HTTP 性能（应用层）：
 
 - 衡量性能指标是 应用程序的请求负载
 - 使用工具：wrk、TCPCopy、Jmeter、LoadRunner 等
+
+## 37 DNS 解析性能优化
+
+两个常用的工具：
+
+- nslookup：如果解析时间较长，要看 DNS 服务器的地址是否距离太远导致丢包，比如 Google 的 8.8.8.8 就比电信提供的 114.114.114.114 要远
+  - nslookup -debug 调试
+  - time nslookup 查询解析时间
+- dig
+  -  dig +trace +nodnssec time.geekbang.org @8.8.8.8 （@指定DNS服务器）
+
+有时候多次执行 nslookup，会发现有时候非常耗时。
+
+增加缓存可以减少 DNS 解析的效率，我们使用的主流 Linux 发行版，除了最新版本的 Ubuntu （如 18.04 或者更新版本）外，其他版本并没有自动配置 DNS 缓存。想要为系统开启 DNS 缓存，就需要你做额外的配置。比如，最简单的方法，就是使用 dnsmasq。
+
+ 启动 dnsmasq： 
+
+```sh
+/# /etc/init.d/dnsmasq start
+ * Starting DNS forwarder and DHCP server dnsmasq  [ OK ]
+```
+
+然后，修改 /etc/resolv.conf，将 DNS 服务器改为 dnsmasq 的监听地址，这儿是 127.0.0.1。接着，重新执行多次 nslookup 命令：
+
+```sh
+/# echo nameserver 127.0.0.1 > /etc/resolv.conf
+/# time nslookup time.geekbang.org
+Server:    127.0.0.1
+Address:  127.0.0.1#53
+
+Non-authoritative answer:
+Name:  time.geekbang.org
+Address: 39.106.233.176
+
+real  0m0.492s
+user  0m0.007s
+sys  0m0.006s
+
+/# time nslookup time.geekbang.org
+Server:    127.0.0.1
+Address:  127.0.0.1#53
+
+Non-authoritative answer:
+Name:  time.geekbang.org
+Address: 39.106.233.176
+
+real  0m0.011s
+user  0m0.008s
+sys  0m0.003s
+```
+
+现在我们可以看到，只有第一次的解析很慢，需要 0.5s，以后的每次解析都很快，只需要 11ms。并且，后面每次 DNS 解析需要的时间也都很稳定。
+
+```sh
+# centos 7 dnsmasq如下操作：
+
+cat /etc/resolv.conf
+nameserver 114.114.114.114
+
+yum -y install dnsmasq
+systemctl start dnsmasq
+
+测试dns缓存，要测试查询速度，请访问一个 dnsmasq 启动后没有访问过的网站，执行：
+[root@node ~]# dig archlinux.org | grep "Query time"
+;; Query time: 212 msec
+[root@node ~]# dig archlinux.org | grep "Query time"
+;; Query time: 2 msec
+再次运行命令，因为使用了缓存，查询时间应该大大缩短。
+```
+
+## 38 tcpdump 和 wireshark 分析网络流量
+
+如果 ping 每次来回的时间都较短，但总的时间却花销较大，大概率是解析 PTR 的原因，PTR 表示进行域名的反向解析，这种情况需要加 ping 选项 -n 禁止域名解析。
+
+tcpdump 的常用选项和过滤项总结成以下两张表：
+
+![](images/tcpdump1.png)
+
+![](images/tcpdump2.png)
+
+wireshark 展示交互图的方法:
+
+从菜单栏中，点击 Statistics -> Flow Graph，然后，在弹出的界面中的 Flow type 选择 TCP Flows，你可以更清晰的看到，整个过程中 TCP 流的执行过程：
+
+![](images/wiresharkflow.png)
+
+其中，断开连接的过程只有三次挥手，这是因为服务器端收到客户端的 FIN 后，服务器端同时也要关闭连接，这样就可以把 ACK 和 FIN 合并到一起发送，节省了一个包，变成了“三次挥手”。
+
+**根据 IP 地址反查域名、根据端口号反查协议名称，是很多网络工具默认的行为，而这往往会导致性能工具的工作缓慢。** 所以，通常，网络性能工具都会提供一个选项（比如 -n 或者 -nn），来禁止名称解析。
+
+## 39 怎么缓解 DDoS 攻击带来的性能下降问题
+
+只是缓解，而不能解决 DDoS 问题。
+
+
+
+## 40 如何优化网络请求延迟
+
+延迟可能来源于三个方面：
+
+- 网络延迟
+- 协议栈延迟
+- 应用程序处理延迟
+
+分析网络延迟的工具：ping、hping3、traceroute
+
+因为网络上的防火墙一般会过滤 ICMP 包，所以一般使用 `hping3 -S` 或 `traceroute --tcp` 使用 TCP SYN 包进行测量。
+
+对于协议栈的优化，注意 TCP 的延迟确认机制和 `tcp_nodelay` 机制有时很影响性能。
+
+## 41/42 优化 NAT 性能
+
+iptables 中的 conntrack，表示连接跟踪模块。它通过内核中的连接跟踪表（也就是哈希表），记录网络连接的状态，是 iptables 状态过滤（-m state）和 NAT 的实现基础。
+
+iptables 中关于 NAT 的三个动作：SNAT、MASQUERADE、DNAT。
+
+其中 SNAT 和 DNAT 好理解，SNAT 和 MASQUERADE 区别是：
+
+- SNAT 配置具体的 IP 地址
+- MASQUERADE 配置一个子网
+
+比如：
+
+SANT：
+
+```sh
+$ iptables -t nat -A POSTROUTING -s 192.168.0.2 -j SNAT --to-source 100.100.100.100
+```
+
+MASQUERADE:
+
+```sh
+$ iptables -t nat -A POSTROUTING -s 192.168.0.0/16 -j MASQUERADE
+```
+
+
 
 ## 43/44 套路：网络优化的思路
 
