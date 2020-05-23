@@ -2503,5 +2503,180 @@ CPU虚拟化的大体过程：
 
 
 
+## 53 存储虚拟化(上)
 
+virtio是对虚拟化IO设备的一种标准，加载虚拟机操作系统的驱动，统一加载 virtio 即可。
+
+
+
+![img](https://static001.geekbang.org/resource/image/1e/33/1e13ffd5ac846c52739291cb489d0233.png)
+
+
+
+virtio 的架构可以分为四层：
+
+virtio 前端驱动层(包括各种针对不同硬件的设备驱动，如硬盘 virtio_blk，网络 virtio_net)，中间是 virtio 层和 virtio-ring 层(主要实现虚拟队列接口)，最低端是virtio 后端驱动层。
+
+![img](https://static001.geekbang.org/resource/image/2e/f3/2e9ef612f7b80ec9fcd91e200f4946f3.png)
+
+整个前后端通信的流程如下图所示：
+
+![img](https://static001.geekbang.org/resource/image/1f/4b/1f0c3043a11d6ea1a802f7d0f3b0b34b.jpg)
+
+
+
+## 54 存储虚拟化(下)
+
+virtio vring 的队列结构：
+
+![img](https://static001.geekbang.org/resource/image/49/db/49414d5acc81933b66410bbba102b0db.jpg)
+
+vring 的三个成员：
+
+- Viring_desc 指向分配的内存块，用于存放 guest 和 qemu 之间传输的数据
+- avail->ring[] 是发送端维护的环形队列，指向需要接收端处理的 ring_desc
+- used->ring[] 是接收端维护的环形队列，执行已经处理过了的 vring_desc
+
+
+
+Virtio_blk 调用的整个过程如下所示：
+
+![img](https://static001.geekbang.org/resource/image/79/0c/79ad143a3149ea36bc80219940d7d00c.jpg)
+
+
+
+
+
+## 55 网络虚拟化
+
+网络虚拟化模型：
+
+![img](https://static001.geekbang.org/resource/image/24/d3/243e93913b18c3ab00be5676bef334d3.png)
+
+整个虚拟网络通信过程如下所示：
+
+![img](https://static001.geekbang.org/resource/image/e3/44/e329505cfcd367612f8ae47054ec8e44.jpg)
+
+
+
+## 56 容器
+
+容器三大底层技术：
+
+- Namespace
+- CGroup
+- 镜像
+
+
+
+容器带来的很多便捷功能：
+
+- 持续集成，build once，run everywhere
+- 弹性伸缩
+- 跨云迁移
+- 。。。
+
+
+
+Docker 限制资源的使用参数：
+
+- `-c 或者 --cpu-shares` 限定 CPU 占用比例
+- `--cpus` 限定容器能使用的 CPU 核数
+- `--cpuset` 让容器运行在某些核上
+- `-m 或者 --memory` 容器能使用的最大内存大小
+- `-memory-swap` 容器能使用的 swap 大小
+- `-memory-swappiness` 设置容器使用的匿名页 swap 的比例
+- `-memory-reservation` 设置一个内存使用的 soft limit，docker 发现主机内存不足，会执行 OOM 操作，该值小于 `-m` 设置的值。
+- `-kernel-memory` 容器能够使用的 kernel memory 大小
+- `-oom-kill-disable` 是否允许 OOM 的时候杀死容器
+
+
+
+整个 Docker 运行模型如下所示：
+
+![img](https://static001.geekbang.org/resource/image/5a/c5/5a499cb50a1b214a39ddf19cbb63dcc5.jpg)
+
+
+
+## 57 Namespace 技术
+
+Namespace 隔离的资源包括：
+
+- UTS
+- User
+- Mount
+- PID
+- Network
+
+
+
+操作 Namespace 的常用指令：
+
+- nsenter：用来运行一个进程，进入指定的 Namespace，比如
+  - `nsenter --target 58212 --mount --uts --ipc --net --pid -- env --ignore-environment-- /bin/bash`
+- unshare：离开当前的 Namespace，创建且加入新的 Namespace，然后执行参数中指定的命令。
+  - `unshare --mount --ipc --pid --net --mount-proc=/proc --fork /bin/bash`
+
+
+
+还可以通过函数来操作 Namespace
+
+- clone：创建一个新的进程，并把它放到新的 Namespace 中。
+
+```
+int clone(int (*fn)(void *), void *child_stack, int flags, void *arg);
+```
+
+- setns：将当前进程加入到已有的 Namespace 中
+
+  ```
+  int setns(int fd, int nstype);
+  ```
+
+- unshare：当前进程退出当前的 Namespace，并加入到新创建的 Namespace。
+
+```sh
+int unshare(int flags);
+```
+
+
+
+![img](https://static001.geekbang.org/resource/image/56/d7/56bb9502b58628ff3d1bee83b6f53cd7.png)
+
+
+
+## 58 CGroup
+
+CGroup 对资源的限制包括以下几类：
+
+- CPU 子系统，主要限制进程的 CPU 使用率
+- cpuacct子系统，可以统计cgroups 中的进程的 CPU 使用报告
+- cpuset 子系统，可以为 CGroups中的进程分配单独的 CPU 节点或者内存节点
+- memory 子系统，可以限制进程的 memory 使用量
+- blkio 子系统，可以限制进程的块设备 io
+- devices子系统，可以控制进程能够访问某些设备
+- net_cls 子系统，可以标记 CGroups中进程的网络数据包，然后可以使用 tc模块对数据包进行控制
+- freezer 子系统，可以挂起或者恢复 CGroups 中的进程
+
+
+
+总结下来，CGroup 对于 docker 资源的控制，在用户态的表现如下图所示：
+
+```
+docker run -d --cpu-shares 513 --cpus 2 --cpuset-cpus 1,3 --memory 1024M --memory-swap 1234M --memory-swappiness 7 -p 8081:80 testnginx:1
+
+# docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED              STATUS              PORTS                  NAMES
+3dc0601189dd        testnginx:1         "/bin/sh -c 'nginx -…"   About a minute ago   Up About a minute   0.0.0.0:8081->80/tcp   boring_cohen
+```
+
+
+
+![img](https://static001.geekbang.org/resource/image/1c/0f/1c762a6283429ff3587a7fc370fc090f.png)
+
+
+
+对于内核中 CGroup 的工作机制，总结如下：
+
+![img](https://static001.geekbang.org/resource/image/c9/c4/c9cc56d20e6a4bac0f9657e6380a96c4.png)
 
